@@ -1,0 +1,4 @@
+*.rest
+.air.toml
+Session.vim
+tmp/
