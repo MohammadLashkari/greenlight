@@ -10,7 +10,18 @@ import (
 )
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "create movie")
+	var input struct {
+		Title   string   `json:"title"`
+		Year    int32    `json:"year"`
+		Runtime int32    `json:"runtime"`
+		Genres  []string `json:"genres"`
+	}
+	err := app.readJSON(w, r, input)
+	if err != nil {
+		app.badRequestResponce(w, r, err)
+		return
+	}
+	fmt.Fprintf(w, "%+v\n", input)
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +40,6 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 	}
 	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 	if err != nil {
-		app.logger.Print(err)
 		app.serverErrorResponse(w, r, err)
 	}
 }
