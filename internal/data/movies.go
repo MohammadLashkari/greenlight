@@ -92,7 +92,12 @@ func (m MovieModel) Update(movie *Movie) error {
         WHERE id = $5 AND version = $6
         RETURNING version`
 	args := []any{
-		&movie.Title, &movie.Year, &movie.Runtime, pq.Array(&movie.Genres), &movie.ID, &movie.Version,
+		&movie.Title,
+		&movie.Year,
+		&movie.Runtime,
+		pq.Array(&movie.Genres),
+		&movie.ID,
+		&movie.Version,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -127,4 +132,42 @@ func (m MovieModel) Delete(id int64) error {
 		return ErrRecordNotFound
 	}
 	return nil
+}
+
+func (m MovieModel) GetAll(title string, genres []string, filters Filters) ([]*Movie, error) {
+	query := `
+		SELECT id, created_at, title, year, runtime, genres, version
+        FROM movies
+        ORDER BY id`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	rows, err := m.DB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	movies := []*Movie{}
+	for rows.Next() {
+		var m Movie
+		err := rows.Scan(
+			&m.ID,
+			&m.CreatedAt,
+			&m.Title,
+			&m.Year,
+			&m.Runtime,
+			pq.Array(&m.Genres),
+			&m.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+		movies = append(movies, &m)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return movies, nil
 }
