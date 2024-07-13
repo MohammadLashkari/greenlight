@@ -4,9 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"flag"
-	"log"
-	"net"
-	"net/http"
 	"os"
 	"time"
 
@@ -69,19 +66,10 @@ func main() {
 		logger: logger,
 		models: data.NewModels(db),
 	}
-
-	srv := http.Server{
-		Addr:         net.JoinHostPort(cfg.host, cfg.port),
-		Handler:      app.routes(),
-		ErrorLog:     log.New(logger, "", 0),
-		IdleTimeout:  time.Minute,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
+	err = app.server()
+	if err != nil {
+		logger.PrintFatal(err, nil)
 	}
-	logger.PrintInfo("starting %s server on %s", map[string]string{
-		"env": cfg.env, "addr": srv.Addr,
-	})
-	logger.PrintFatal(srv.ListenAndServe(), nil)
 }
 
 func openDB(cfg config) (*sql.DB, error) {
