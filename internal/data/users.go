@@ -60,7 +60,7 @@ func ValidateEmail(v *validator.Validator, email string) {
 func ValidatePassword(v *validator.Validator, password string) {
 	v.Check(password != "", "password", "must be provided")
 	v.Check(len(password) >= 8, "password", "must be at least 8 bytes logn")
-	v.Check(len(password) <= 72, "name", "must not be more than 72 bytes long")
+	v.Check(len(password) <= 72, "password", "must not be more than 72 bytes long")
 }
 
 func ValidateUser(v *validator.Validator, user *User) {
@@ -92,10 +92,12 @@ func (m UserModel) Insert(user *User) error {
 		&user.ID, &user.CreatedAt, &user.Version,
 	)
 	if err != nil {
-		if err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"` {
+		switch {
+		case err.Error() == `pq: duplicate key value violates unique constraint "users_email_key"`:
 			return ErrDuplicateEmail
+		default:
+			return err
 		}
-		return err
 	}
 	return nil
 }
@@ -119,10 +121,13 @@ func (m UserModel) GetByEmail(email string) (*User, error) {
 		&user.Version,
 	)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		switch {
+
+		case errors.Is(err, sql.ErrNoRows):
 			return nil, ErrRecordNotFound
+		default:
+			return nil, err
 		}
-		return nil, err
 	}
 	return &user, nil
 }
