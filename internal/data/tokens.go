@@ -43,7 +43,6 @@ func generateToken(userID int64, ttl time.Duration, scope string) (*Token, error
 func ValidateTokenPlaintext(v *validator.Validator, tokenPlaintext string) {
 	v.Check(tokenPlaintext != "", "toke", "must be provided")
 	v.Check(len(tokenPlaintext) == 26, "toke", "must be 26 bytes long")
-
 }
 
 type TokenModel struct {
@@ -72,7 +71,7 @@ func (m TokenModel) Insert(token *Token) error {
 	return err
 }
 
-func (m TokenModel) DeleteAllForUser(userID int64, scope string) error {
+func (m TokenModel) DeleteAllForUser(scope string, userID int64) error {
 	query := `
         DELETE FROM tokens WHERE user_id = $1 AND scope = $2`
 
