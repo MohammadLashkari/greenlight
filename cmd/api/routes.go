@@ -10,8 +10,9 @@ func (app *application) routes() http.Handler {
 	router := httprouter.New()
 	router.NotFound = http.HandlerFunc(app.notFoundResponse)
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
-	// movies
+	// healthcheck
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
+	// movies
 	router.HandlerFunc(http.MethodGet, "/v1/movies", app.listMovieHandler)
 	router.HandlerFunc(http.MethodPost, "/v1/movies", app.createMovieHandler)
 	router.HandlerFunc(http.MethodGet, "/v1/movies/:id", app.showMovieHandler)
@@ -22,5 +23,11 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	// tokens
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
-	return app.recoverPanic(app.rateLimit(router))
+	return app.recoverPanic(
+		app.rateLimit(
+			app.authenticate(
+				router,
+			),
+		),
+	)
 }
