@@ -1,6 +1,7 @@
 package main
 
 import (
+	"expvar"
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
@@ -12,6 +13,8 @@ func (app *application) routes() http.Handler {
 	router.MethodNotAllowed = http.HandlerFunc(app.methodNotAllowedResponse)
 	// healthcheck
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.healthcheckHandler)
+	// expvar
+	router.Handler(http.MethodGet, "/debug/vars", expvar.Handler())
 	// movies
 	router.HandlerFunc(http.MethodGet, "/v1/movies", app.requirePermission("movies:read", app.listMovieHandler))
 	router.HandlerFunc(http.MethodPost, "/v1/movies", app.requirePermission("movies:write", app.createMovieHandler))
@@ -23,13 +26,13 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodPut, "/v1/users/activated", app.activateUserHandler)
 	// tokens
 	router.HandlerFunc(http.MethodPost, "/v1/tokens/authentication", app.createAuthenticationTokenHandler)
-	return app.recoverPanic(
-		app.enableCORS(
-			app.rateLimit(
-				app.authenticate(
-					router,
-				),
-			),
-		),
+
+	stack := app.middlewareStack(
+		app.metrics,
+		app.recoverPanic,
+		app.enableCORS,
+		app.rateLimit,
+		app.authenticate,
 	)
+	return stack(router)
 }
