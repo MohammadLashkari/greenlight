@@ -57,7 +57,13 @@ func main() {
 	var cfg config
 	flag.StringVar(&cfg.host, "host", "localhost", "API server host")
 	flag.StringVar(&cfg.port, "port", "8080", "API server port")
-	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
+	flag.Func("env", "Environment (development|staging|production)", func(s string) error {
+		if slices.Contains([]string{"development", "staging", "production"}, s) {
+			cfg.env = s
+			return nil
+		}
+		return errors.New(`must be one of "development", "staging", "production"`)
+	})
 
 	flag.StringVar(&cfg.db.dsn, "db-dsn", os.Getenv("GREENLIGHT_DB_DSN"), "postgres DSN")
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
@@ -74,7 +80,7 @@ func main() {
 	flag.StringVar(&cfg.smtp.password, "smtp-password", "9893e07067cd3f", "SMTP password")
 	flag.StringVar(&cfg.smtp.sender, "smtp-sender", "Greenlight <no-reply@greenlight.alexedwards.net>", "SMTP sender")
 
-	flag.Func("cros-trusted-origins", "Trusted CORS origins (space separated)", func(s string) error {
+	flag.Func("cors-trusted-origins", "Trusted CORS origins (space separated)", func(s string) error {
 		cfg.cors.trustedOrigins = strings.Fields(s)
 		return nil
 	})
