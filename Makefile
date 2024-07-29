@@ -1,7 +1,7 @@
 # include variables from .envrc file
 include .envrc
 
-## help: print this help message
+## help: print help message
 .PHONY: help
 help:
 	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':'
@@ -14,6 +14,14 @@ confirm:
 .PHONY: run/api
 run/api:
 	@go run ./cmd/api -db-dsn=${GREENLIGHT_DB_DSN}
+
+## air/api: run the cmd/api application using air
+.PHONY: air/api/
+air/api:
+	@air --build.cmd "go build -o ./bin/air/api ./cmd/api" \
+		--build.bin "./bin/air/api" \
+		--misc.clean_on_exit true \
+		-- -db-dsn=${GREENLIGHT_DB_DSN}
 
 ## db/psql: connect to the database using psql
 .PHONY: db/psql
@@ -34,10 +42,7 @@ db/migration/up: confirm
 
 ## audit: tidy dependencies and format, vet and test all code
 .PHONY: audit
-audit:
-	@echo 'Tidying and verifying module dependencies...'
-	go mod tidy
-	go mod verify
+audit: vendor
 	@echo 'Formatting code...'
 	go fmt ./...
 	@echo 'Vetting code...'
@@ -45,3 +50,20 @@ audit:
 	staticcheck ./...
 	@echo 'Running tests...'
 	go test -race -vet=off ./...
+
+## vendor: tidy and vendor dependencies
+.PHONY: vendor
+vendor:
+	@echo 'Tidying and verifying module dependencies...'
+	go mod tidy
+	go mod verify
+	@echo 'Vendoring dependencies...'
+	go mod vendor
+
+## build/api: build the cmd/api application
+.PHONY: build/api
+build/api:
+	@echo 'Building cmd/api...'
+	go build -ldflags='-s' -o=./bin/api ./cmd/api
+	GOOS=linux GOARCH=amd64 go build -ldflags='-s' -o=./bin/linux_amd64/api ./cmd/api
+

@@ -1,5 +1,6 @@
 *.rest
+*.vim
 .air.toml
-Session.vim
-tmp/
 .envrc
+tmp/
+bin/
