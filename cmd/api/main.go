@@ -3,12 +3,11 @@ package main
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"expvar"
 	"flag"
+	"fmt"
 	"os"
 	"runtime"
-	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -16,10 +15,13 @@ import (
 	"github.com/MohammadLashkari/greenlight/internal/data"
 	"github.com/MohammadLashkari/greenlight/internal/jsonlog"
 	"github.com/MohammadLashkari/greenlight/internal/mailer"
+	"github.com/MohammadLashkari/greenlight/internal/vcs"
 	_ "github.com/lib/pq"
 )
 
-const version = "1.0.0"
+var (
+	version = vcs.Version()
+)
 
 type config struct {
 	host string
@@ -61,13 +63,7 @@ func main() {
 	var cfg config
 	flag.StringVar(&cfg.host, "host", "localhost", "API server host")
 	flag.StringVar(&cfg.port, "port", "8080", "API server port")
-	flag.Func("env", "Environment (development|staging|production)", func(s string) error {
-		if slices.Contains([]string{"development", "staging", "production"}, s) {
-			cfg.env = s
-			return nil
-		}
-		return errors.New(`must be one of "development", "staging", "production"`)
-	})
+	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "", "postgres DSN")
 	flag.IntVar(&cfg.db.maxOpenConns, "db-max-open-conns", 25, "PostgreSQL max open connections")
@@ -88,7 +84,14 @@ func main() {
 		cfg.cors.trustedOrigins = strings.Fields(s)
 		return nil
 	})
+
+	displayVersion := flag.Bool("version", false, "Display version and exit")
 	flag.Parse()
+
+	if *displayVersion {
+		fmt.Printf("Version:\t%s\n", version)
+		os.Exit(0)
+	}
 
 	logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 
